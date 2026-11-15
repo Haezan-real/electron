@@ -149,6 +149,10 @@ void ElectronApiSWIPCHandlerImpl::SetHaezansDomCapture(
     int32_t max_z,
     mojo::PendingRemote<mojom::HaezansDomCaptureClient> client) {}
 
+void ElectronApiSWIPCHandlerImpl::ReleaseHaezansCapture(
+    uint32_t token,
+    const gpu::SyncToken& sync_token) {}
+
 ElectronBrowserContext* ElectronApiSWIPCHandlerImpl::GetBrowserContext() {
   auto* browser_context = static_cast<ElectronBrowserContext*>(
       render_process_host_->GetBrowserContext());

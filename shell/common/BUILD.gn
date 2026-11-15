@@ -36,6 +36,7 @@ mojom("mojo") {
   ]
 
   public_deps = [
+    "//gpu/ipc/common:interfaces",
     "//mojo/public/mojom/base",
     "//third_party/blink/public/mojom:mojom_core",
     "//ui/gfx/geometry/mojom",

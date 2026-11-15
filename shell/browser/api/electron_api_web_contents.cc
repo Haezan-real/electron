@@ -80,6 +80,8 @@
 #include "content/public/common/referrer_type_converters.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
+#include "gpu/command_buffer/client/client_shared_image.h"
+#include "gpu/command_buffer/common/sync_token.h"
 #include "services/viz/privileged/mojom/compositing/display_private.mojom.h"
 #include "ui/compositor/compositor.h"
 #include "content/public/common/result_codes.h"
@@ -2663,10 +2665,12 @@ class WebContents::HaezansDomCaptureBridge
     return receiver_.BindNewPipeAndPassRemote();
   }
 
-  void OnRegion(const gfx::Rect& rect,
-                const std::vector<uint8_t>& pixels) override {
+  void OnRegion(uint32_t token,
+                const gfx::Rect& rect,
+                gpu::ExportedSharedImage image,
+                const gpu::SyncToken& sync_token) override {
     if (client_.is_bound())
-      client_->OnRegion(rect, pixels);
+      client_->OnRegion(token, rect, std::move(image), sync_token);
   }
 
  private:
@@ -2700,6 +2704,15 @@ void WebContents::SetHaezansDomCapture(
   }
   haezans_bridge_.reset(new HaezansDomCaptureBridge(std::move(client)));
   compositor->SetHaezansDomCapture(true, max_z, haezans_bridge_->Bind());
+}
+
+void WebContents::ReleaseHaezansCapture(uint32_t token,
+                                        const gpu::SyncToken& sync_token) {
+  if (!haezans_allowed_ || !owner_window_ || !owner_window_->widget())
+    return;
+  ui::Compositor* compositor = owner_window_->widget()->GetCompositor();
+  if (compositor)
+    compositor->ReleaseHaezansDomCapture(token, sync_token);
 }
 
 void WebContents::SetBackgroundThrottling(bool allowed) {

@@ -14,8 +14,8 @@ class RenderFrame;
 namespace electron {
 
 // Installs globalThis.haezansDomCapture on the main frame's main world.
-// below(maxZ, callback) asks the compositor for pixels at or below maxZ.
-// stop() drops that request.
+// below(maxZ, callback) asks the compositor for quads at or below maxZ.
+// The callback receives an ImageBitmap of each new rectangle. stop() drops it.
 void InstallHaezansDomCapture(content::RenderFrame* render_frame,
                               v8::Isolate* isolate,
                               v8::Local<v8::Context> context);

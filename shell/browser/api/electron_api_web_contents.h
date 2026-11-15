@@ -32,6 +32,7 @@
 #include "content/public/common/stop_find_action.h"
 #include "electron/buildflags/buildflags.h"
 #include "printing/buildflags/buildflags.h"
+#include "gpu/command_buffer/common/sync_token.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "shell/browser/background_throttling_source.h"
 #include "shell/common/api/api.mojom.h"
@@ -206,6 +207,7 @@ class WebContents final : public ExclusiveAccessContext,
       bool enabled,
       int32_t max_z,
       mojo::PendingRemote<mojom::HaezansDomCaptureClient> client);
+  void ReleaseHaezansCapture(uint32_t token, const gpu::SyncToken& sync_token);
   int32_t GetProcessID() const;
   base::ProcessId GetOSProcessID() const;
   [[nodiscard]] Type type() const { return type_; }

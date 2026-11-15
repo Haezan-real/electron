@@ -60,6 +60,8 @@ class ElectronApiIPCHandlerImpl : public mojom::ElectronApiIPC,
       bool enabled,
       int32_t max_z,
       mojo::PendingRemote<mojom::HaezansDomCaptureClient> client) override;
+  void ReleaseHaezansCapture(uint32_t token,
+                             const gpu::SyncToken& sync_token) override;
 
   base::WeakPtr<ElectronApiIPCHandlerImpl> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();

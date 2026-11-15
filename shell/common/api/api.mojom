@@ -1,5 +1,7 @@
 module electron.mojom;
 
+import "gpu/ipc/common/exported_shared_image.mojom";
+import "gpu/ipc/common/sync_token.mojom";
 import "mojo/public/mojom/base/big_buffer.mojom";
 import "mojo/public/mojom/base/string16.mojom";
 import "ui/gfx/geometry/mojom/geometry.mojom";
@@ -66,9 +68,12 @@ interface ElectronAutofillDriver {
 };
 
 // Receives rectangles of a z-cutoff capture. |rect| is in window pixels,
-// origin at the top left. |pixels| is tightly packed RGBA.
+// origin at the top left. |image| is a GPU shared image of that rectangle.
 interface HaezansDomCaptureClient {
-  OnRegion(gfx.mojom.Rect rect, array<uint8> pixels);
+  OnRegion(uint32 token,
+           gfx.mojom.Rect rect,
+           gpu.mojom.ExportedSharedImage image,
+           gpu.mojom.SyncToken sync_token);
 };
 
 interface ElectronApiIPC {
@@ -106,4 +111,7 @@ interface ElectronApiIPC {
       bool enabled,
       int32 max_z,
       pending_remote<HaezansDomCaptureClient> client);
+
+  // Drops the compositor's reference once |token| has been imported.
+  ReleaseHaezansCapture(uint32 token, gpu.mojom.SyncToken sync_token);
 };

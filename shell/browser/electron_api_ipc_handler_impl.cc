@@ -134,6 +134,14 @@ void ElectronApiIPCHandlerImpl::SetHaezansDomCapture(
     contents->SetHaezansDomCapture(enabled, max_z, std::move(client));
 }
 
+void ElectronApiIPCHandlerImpl::ReleaseHaezansCapture(
+    uint32_t token,
+    const gpu::SyncToken& sync_token) {
+  auto* contents = api::WebContents::From(web_contents());
+  if (contents)
+    contents->ReleaseHaezansCapture(token, sync_token);
+}
+
 content::RenderFrameHost* ElectronApiIPCHandlerImpl::GetRenderFrameHost() {
   return content::RenderFrameHost::FromID(render_frame_host_id_);
 }

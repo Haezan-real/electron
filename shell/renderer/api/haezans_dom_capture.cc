@@ -4,29 +4,32 @@
 
 #include "shell/renderer/api/haezans_dom_capture.h"
 
-#include <iterator>
 #include <map>
 #include <memory>
 #include <utility>
-#include <vector>
 
+#include "base/functional/bind.h"
 #include "base/no_destructor.h"
 #include "content/public/renderer/render_frame.h"
 #include "content/public/renderer/render_frame_observer.h"
+#include "gpu/command_buffer/client/client_shared_image.h"
+#include "gpu/command_buffer/common/sync_token.h"
 #include "mojo/public/cpp/bindings/associated_remote.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "shell/common/api/api.mojom.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
 #include "third_party/blink/public/web/web_local_frame.h"
+#include "third_party/blink/renderer/core/imagebitmap/image_bitmap.h"  // nogncheck
+#include "third_party/blink/renderer/platform/bindings/script_state.h"  // nogncheck
+#include "third_party/blink/renderer/platform/graphics/accelerated_static_bitmap_image.h"  // nogncheck
+#include "third_party/skia/include/core/SkAlphaType.h"
 #include "ui/gfx/geometry/rect.h"
-#include "v8/include/v8-array-buffer.h"
 #include "v8/include/v8-context.h"
 #include "v8/include/v8-external.h"
 #include "v8/include/v8-function.h"
 #include "v8/include/v8-isolate.h"
 #include "v8/include/v8-object.h"
 #include "v8/include/v8-primitive.h"
-#include "v8/include/v8-typed-array.h"
 
 namespace electron {
 namespace {
@@ -63,39 +66,63 @@ class HaezansHost : public content::RenderFrameObserver,
         .Check();
   }
 
-  void OnRegion(const gfx::Rect& rect,
-                const std::vector<uint8_t>& pixels) override {
-    if (callback_.IsEmpty() || context_.IsEmpty())
+  void OnRegion(uint32_t token,
+                const gfx::Rect& rect,
+                gpu::ExportedSharedImage image,
+                const gpu::SyncToken& sync_token) override {
+    if (callback_.IsEmpty() || context_.IsEmpty()) {
+      ReleaseCapture(token, gpu::SyncToken());
       return;
+    }
     v8::Isolate* isolate = v8::Isolate::GetCurrent();
-    if (!isolate)
+    if (!isolate) {
+      ReleaseCapture(token, gpu::SyncToken());
       return;
+    }
     v8::HandleScope handle_scope(isolate);
     v8::Local<v8::Context> context = context_.Get(isolate);
     v8::Context::Scope context_scope(context);
     v8::TryCatch try_catch(isolate);
 
-    auto* owned = new std::vector<uint8_t>(pixels);
-    std::unique_ptr<v8::BackingStore> backing =
-        v8::ArrayBuffer::NewBackingStore(
-            owned->data(), owned->size(),
-            [](void*, size_t, void* deleter_data) {
-              delete static_cast<std::vector<uint8_t>*>(deleter_data);
-            },
-            owned);
-    v8::Local<v8::ArrayBuffer> buffer =
-        v8::ArrayBuffer::New(isolate, std::move(backing));
-    v8::Local<v8::Uint8Array> view =
-        v8::Uint8Array::New(buffer, 0, pixels.size());
+    bool released = false;
+    scoped_refptr<blink::AcceleratedStaticBitmapImage> accelerated =
+        blink::AcceleratedStaticBitmapImage::CreateFromExternalSharedImage(
+            std::move(image), sync_token, kPremul_SkAlphaType,
+            base::BindOnce(
+                [](HaezansHost* host, uint32_t token, bool* released,
+                   const gpu::SyncToken& release_token) {
+                  *released = true;
+                  host->ReleaseCapture(token, release_token);
+                },
+                this, token, &released));
+    if (!released)
+      ReleaseCapture(token, gpu::SyncToken());
+    if (!accelerated)
+      return;
+
+    blink::ScriptState* script_state =
+        blink::ScriptState::MaybeFrom(isolate, context);
+    if (!script_state)
+      return;
+    auto* bitmap = blink::MakeGarbageCollected<blink::ImageBitmap>(
+        scoped_refptr<blink::StaticBitmapImage>(std::move(accelerated)));
+    v8::Local<v8::Value> wrapped = bitmap->ToV8(script_state);
+    if (wrapped.IsEmpty())
+      return;
     v8::Local<v8::Value> args[] = {
         v8::Integer::New(isolate, rect.x()),
         v8::Integer::New(isolate, rect.y()),
         v8::Integer::New(isolate, rect.width()),
         v8::Integer::New(isolate, rect.height()),
-        view,
+        wrapped,
     };
-    std::ignore = callback_.Get(isolate)->Call(context, context->Global(), 5,
-                                               args);
+    std::ignore =
+        callback_.Get(isolate)->Call(context, context->Global(), 5, args);
+  }
+
+  void ReleaseCapture(uint32_t token, const gpu::SyncToken& sync_token) {
+    if (ipc_.is_bound())
+      ipc_->ReleaseHaezansCapture(token, sync_token);
   }
 
  private:
