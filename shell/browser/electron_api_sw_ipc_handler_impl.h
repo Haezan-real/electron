@@ -66,6 +66,10 @@ class ElectronApiSWIPCHandlerImpl : public mojom::ElectronApiIPC,
                    MessageSyncCallback callback) override;
   void MessageHost(const std::string& channel,
                    electron::SerializedValue arguments) override;
+  void SetHaezansDomCapture(
+      bool enabled,
+      int32_t max_z,
+      mojo::PendingRemote<mojom::HaezansDomCaptureClient> client) override;
 
   base::WeakPtr<ElectronApiSWIPCHandlerImpl> GetWeakPtr() {
     return weak_factory_.GetWeakPtr();

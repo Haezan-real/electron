@@ -32,7 +32,9 @@
 #include "content/public/common/stop_find_action.h"
 #include "electron/buildflags/buildflags.h"
 #include "printing/buildflags/buildflags.h"
+#include "mojo/public/cpp/bindings/pending_remote.h"
 #include "shell/browser/background_throttling_source.h"
+#include "shell/common/api/api.mojom.h"
 #include "shell/browser/event_emitter_mixin.h"
 #include "shell/browser/extended_web_contents_observer.h"
 #include "shell/browser/osr/osr_paint_event.h"
@@ -197,6 +199,13 @@ class WebContents final : public ExclusiveAccessContext,
   bool GetBackgroundThrottling() const override;
 
   void SetBackgroundThrottling(bool allowed);
+  // Lets the renderer start a z-cutoff capture. Off until the main process
+  // calls setHaezansDomCapture(true).
+  void AllowHaezansDomCapture(bool allowed);
+  void SetHaezansDomCapture(
+      bool enabled,
+      int32_t max_z,
+      mojo::PendingRemote<mojom::HaezansDomCaptureClient> client);
   int32_t GetProcessID() const;
   base::ProcessId GetOSProcessID() const;
   [[nodiscard]] Type type() const { return type_; }
@@ -835,6 +844,16 @@ class WebContents final : public ExclusiveAccessContext,
 
   // Whether background throttling is disabled.
   bool background_throttling_ = true;
+
+  // The renderer may open a z-cutoff capture only after the main process
+  // allows it.
+  bool haezans_allowed_ = false;
+  class HaezansDomCaptureBridge;
+  struct HaezansDomCaptureDeleter {
+    void operator()(HaezansDomCaptureBridge* bridge) const;
+  };
+  std::unique_ptr<HaezansDomCaptureBridge, HaezansDomCaptureDeleter>
+      haezans_bridge_;
 
   // Kept by JS while 'console-message' has listeners.
   bool console_message_observed_ = false;

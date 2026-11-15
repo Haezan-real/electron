@@ -144,6 +144,11 @@ void ElectronApiSWIPCHandlerImpl::MessageHost(
   NOTIMPLEMENTED();  // Service workers have no <webview>
 }
 
+void ElectronApiSWIPCHandlerImpl::SetHaezansDomCapture(
+    bool enabled,
+    int32_t max_z,
+    mojo::PendingRemote<mojom::HaezansDomCaptureClient> client) {}
+
 ElectronBrowserContext* ElectronApiSWIPCHandlerImpl::GetBrowserContext() {
   auto* browser_context = static_cast<ElectronBrowserContext*>(
       render_process_host_->GetBrowserContext());

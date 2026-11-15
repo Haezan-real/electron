@@ -65,6 +65,12 @@ interface ElectronAutofillDriver {
   HideAutofillPopup();
 };
 
+// Receives rectangles of a z-cutoff capture. |rect| is in window pixels,
+// origin at the top left. |pixels| is tightly packed RGBA.
+interface HaezansDomCaptureClient {
+  OnRegion(gfx.mojom.Rect rect, array<uint8> pixels);
+};
+
 interface ElectronApiIPC {
   // Emits an event on |channel| from the ipcMain JavaScript object in the main
   // process.
@@ -93,4 +99,11 @@ interface ElectronApiIPC {
   MessageHost(
     string channel,
     SerializedValue arguments);
+
+  // Draws every quad at or below |max_z| and sends each new rectangle to
+  // |client|. The browser ignores this unless the page was allowed to.
+  SetHaezansDomCapture(
+      bool enabled,
+      int32 max_z,
+      pending_remote<HaezansDomCaptureClient> client);
 };

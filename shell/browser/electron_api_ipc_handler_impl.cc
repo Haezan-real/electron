@@ -125,6 +125,15 @@ void ElectronApiIPCHandlerImpl::MessageHost(
   }
 }
 
+void ElectronApiIPCHandlerImpl::SetHaezansDomCapture(
+    bool enabled,
+    int32_t max_z,
+    mojo::PendingRemote<mojom::HaezansDomCaptureClient> client) {
+  auto* contents = api::WebContents::From(web_contents());
+  if (contents)
+    contents->SetHaezansDomCapture(enabled, max_z, std::move(client));
+}
+
 content::RenderFrameHost* ElectronApiIPCHandlerImpl::GetRenderFrameHost() {
   return content::RenderFrameHost::FromID(render_frame_host_id_);
 }

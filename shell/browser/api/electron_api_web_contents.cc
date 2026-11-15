@@ -78,6 +78,10 @@
 #include "content/public/common/child_process_id.h"
 #include "content/public/common/page_visibility_state.h"
 #include "content/public/common/referrer_type_converters.h"
+#include "mojo/public/cpp/bindings/receiver.h"
+#include "mojo/public/cpp/bindings/remote.h"
+#include "services/viz/privileged/mojom/compositing/display_private.mojom.h"
+#include "ui/compositor/compositor.h"
 #include "content/public/common/result_codes.h"
 #include "content/public/common/url_constants.h"
 #include "content/public/common/webplugininfo.h"
@@ -2648,6 +2652,56 @@ bool WebContents::GetBackgroundThrottling() const {
   return background_throttling_;
 }
 
+class WebContents::HaezansDomCaptureBridge
+    : public viz::mojom::HaezansDomCaptureClient {
+ public:
+  explicit HaezansDomCaptureBridge(
+      mojo::PendingRemote<electron::mojom::HaezansDomCaptureClient> client)
+      : client_(std::move(client)) {}
+
+  mojo::PendingRemote<viz::mojom::HaezansDomCaptureClient> Bind() {
+    return receiver_.BindNewPipeAndPassRemote();
+  }
+
+  void OnRegion(const gfx::Rect& rect,
+                const std::vector<uint8_t>& pixels) override {
+    if (client_.is_bound())
+      client_->OnRegion(rect, pixels);
+  }
+
+ private:
+  mojo::Remote<electron::mojom::HaezansDomCaptureClient> client_;
+  mojo::Receiver<viz::mojom::HaezansDomCaptureClient> receiver_{this};
+};
+
+void WebContents::HaezansDomCaptureDeleter::operator()(
+    HaezansDomCaptureBridge* bridge) const {
+  delete bridge;
+}
+
+void WebContents::AllowHaezansDomCapture(bool allowed) {
+  haezans_allowed_ = allowed;
+  if (!allowed)
+    SetHaezansDomCapture(false, 0, {});
+}
+
+void WebContents::SetHaezansDomCapture(
+    bool enabled,
+    int32_t max_z,
+    mojo::PendingRemote<mojom::HaezansDomCaptureClient> client) {
+  ui::Compositor* compositor = nullptr;
+  if (owner_window_ && owner_window_->widget())
+    compositor = owner_window_->widget()->GetCompositor();
+  if (!haezans_allowed_ || !enabled || !client.is_valid() || !compositor) {
+    haezans_bridge_.reset();
+    if (compositor)
+      compositor->SetHaezansDomCapture(false, 0, {});
+    return;
+  }
+  haezans_bridge_.reset(new HaezansDomCaptureBridge(std::move(client)));
+  compositor->SetHaezansDomCapture(true, max_z, haezans_bridge_->Bind());
+}
+
 void WebContents::SetBackgroundThrottling(bool allowed) {
   background_throttling_ = allowed;
 
@@ -4798,6 +4852,8 @@ void WebContents::FillObjectTemplate(v8::Isolate* isolate,
                  &WebContents::GetBackgroundThrottling)
       .SetMethod("setBackgroundThrottling",
                  &WebContents::SetBackgroundThrottling)
+      .SetMethod("setHaezansDomCapture",
+                 &WebContents::AllowHaezansDomCapture)
       .SetMethod("getProcessId", &WebContents::GetProcessID)
       .SetMethod("getOSProcessId", &WebContents::GetOSProcessID)
       .SetMethod("_setConsoleMessageObserved",

@@ -741,6 +741,8 @@ filenames = {
     "shell/renderer/api/electron_api_context_bridge.h",
     "shell/renderer/api/electron_api_crash_reporter_renderer.cc",
     "shell/renderer/api/electron_api_ipc_renderer.cc",
+    "shell/renderer/api/haezans_dom_capture.cc",
+    "shell/renderer/api/haezans_dom_capture.h",
     "shell/renderer/api/electron_api_spell_check_client.cc",
     "shell/renderer/api/electron_api_spell_check_client.h",
     "shell/renderer/api/electron_api_web_frame.cc",

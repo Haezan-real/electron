@@ -33,6 +33,7 @@
 #include "shell/common/world_ids.h"
 #include "shell/renderer/api/context_bridge/object_cache.h"
 #include "shell/renderer/api/electron_api_context_bridge.h"
+#include "shell/renderer/api/haezans_dom_capture.h"
 #include "shell/renderer/browser_exposed_renderer_interfaces.h"
 #include "shell/renderer/content_settings_observer.h"
 #include "shell/renderer/electron_api_service_impl.h"
@@ -392,6 +393,7 @@ void RendererClientBase::DidCreateScriptContext(
     v8::Local<v8::Context> context,
     content::RenderFrame* render_frame) {
   RegisterOomStackTraceCallback(isolate);
+  InstallHaezansDomCapture(render_frame, isolate, context);
 }
 
 void RendererClientBase::DidClearWindowObject(
