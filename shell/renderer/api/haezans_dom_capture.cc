@@ -84,21 +84,23 @@ class HaezansHost : public content::RenderFrameObserver,
     v8::Context::Scope context_scope(context);
     v8::TryCatch try_catch(isolate);
 
-    bool released = false;
+    std::shared_ptr<bool> alive = alive_;
     scoped_refptr<blink::AcceleratedStaticBitmapImage> accelerated =
         blink::AcceleratedStaticBitmapImage::CreateFromExternalSharedImage(
             std::move(image), sync_token, kPremul_SkAlphaType,
             base::BindOnce(
-                [](HaezansHost* host, uint32_t token, bool* released,
-                   const gpu::SyncToken& release_token) {
-                  *released = true;
+                [](std::shared_ptr<bool> alive, HaezansHost* host,
+                   uint32_t token, const gpu::SyncToken& release_token) {
+                  if (!alive || !*alive)
+                    return;
                   host->ReleaseCapture(token, release_token);
                 },
-                this, token, &released));
-    if (!released)
+                alive, this, token),
+            /*verify_release=*/false);
+    if (!accelerated) {
       ReleaseCapture(token, gpu::SyncToken());
-    if (!accelerated)
       return;
+    }
 
     blink::ScriptState* script_state =
         blink::ScriptState::MaybeFrom(isolate, context);
@@ -172,10 +174,12 @@ class HaezansHost : public content::RenderFrameObserver,
   }
 
   void OnDestruct() override {
+    *alive_ = false;
     HaezansHosts().erase(render_frame());
     delete this;
   }
 
+  std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
   mojo::AssociatedRemote<mojom::ElectronApiIPC> ipc_;
   mojo::Receiver<mojom::HaezansDomCaptureClient> receiver_{this};
   v8::Global<v8::Function> callback_;
