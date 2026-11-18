@@ -52,7 +52,6 @@
 #include "chrome/browser/browser_features.h"
 #include "components/os_crypt/async/browser/freedesktop_secret_key_provider.h"
 #include "components/os_crypt/async/browser/secret_portal_key_provider.h"
-#include "components/password_manager/core/browser/password_manager_switches.h"  // nogncheck
 #include "shell/common/application_info.h"
 
 #endif
@@ -473,8 +472,9 @@ void BrowserProcessImpl::CreateOSCryptAsync() {
 
 #if BUILDFLAG(IS_LINUX)
   base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
-  const auto password_store =
-      cmd_line->GetSwitchValueASCII(password_manager::kPasswordStore);
+  // Switch name matches Chromium's former password_manager::kPasswordStore
+  // (tree removed for Hallulium).
+  const auto password_store = cmd_line->GetSwitchValueASCII("password-store");
 
   if (base::FeatureList::IsEnabled(features::kDbusSecretPortal)) {
     // Use a higher priority than the FreedesktopSecretKeyProvider.

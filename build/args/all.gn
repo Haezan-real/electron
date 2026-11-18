@@ -76,6 +76,10 @@ enable_linux_installer = false
 # Disable "Save to Drive" feature in PDF viewer
 enable_pdf_save_to_drive = false
 
+# Hallulium: do not bundle //third_party/devtools-frontend (~600MB).
+# openDevTools can use the remote CDN frontend instead.
+enable_devtools_frontend = false
+
 # Blink's crowdsourced V8 compile hints producer randomly selects 0.5% of
 # renderer processes (Windows only) to compile every http(s) script from
 # source -- deliberately not consuming an existing code cache, and neither

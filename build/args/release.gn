@@ -8,12 +8,7 @@ is_official_build = true
 # we build ffmpeg as a shared library.
 is_component_ffmpeg = true
 
-# Electron-generated PGO profiles. The C++ profiles are resolved by Chromium's
-# standard chrome_pgo_phase = 2 machinery (patched to read Electron's state
-# files - see
-# patches/chromium/build_resolve_pgo_profiles_from_electron_state_files.patch),
-# so this file only needs to point V8's builtins profiling at the Electron
-# profile. Both are downloaded by gclient hooks; see
-# build/pgo_profiles/README.md.
-v8_builtins_profiling_log_file =
-    "//electron/build/pgo_profiles/electron-v8-builtins.profile"
+# Hallulium: PGO profiles purged (unused-by-electron phase 12). Official
+# Electron defaults chrome_pgo_phase=2 when is_official_build; force off.
+chrome_pgo_phase = 0
+v8_builtins_profiling_log_file = ""
