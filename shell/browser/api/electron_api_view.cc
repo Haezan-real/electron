@@ -10,7 +10,6 @@
 #include <string>
 #include <utility>
 
-#include "ash/style/rounded_rect_cutout_path_builder.h"
 #include "gin/data_object_builder.h"
 #include "gin/wrappable.h"
 #include "shell/browser/javascript_environment.h"
@@ -20,6 +19,9 @@
 #include "shell/common/gin_helper/handle.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/node_includes.h"
+#include "third_party/skia/include/core/SkPath.h"
+#include "third_party/skia/include/core/SkPathBuilder.h"
+#include "third_party/skia/include/core/SkRRect.h"
 #include "ui/compositor/layer.h"
 #include "ui/views/animation/animation_builder.h"
 #include "ui/views/background.h"
@@ -507,11 +509,14 @@ void View::ApplyBorderRadius() {
     radius = std::floor(r);
   }
 
-  // RoundedRectCutoutPathBuilder has a minimum size of 32 x 32.
+  // The removed ash path builder required a minimum size of 32 x 32.
   if (radius > 0 && size.width() >= 32 && size.height() >= 32) {
-    auto builder = ash::RoundedRectCutoutPathBuilder(gfx::SizeF(size));
-    builder.CornerRadius(radius);
-    view_->SetClipPath(builder.Build());
+    const SkPath path =
+        SkPathBuilder()
+            .addRRect(SkRRect::MakeRectXY(
+                SkRect::MakeWH(size.width(), size.height()), radius, radius))
+            .detach();
+    view_->SetClipPath(path);
   } else {
     view_->SetClipPath(SkPath());
   }
